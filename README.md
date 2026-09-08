@@ -68,7 +68,7 @@ Root-caused via trace inspection: comparing the node's `state before/after`
 across two runs (a real tender vs. a fabricated one) showed identical 
 output despite different inputs: the tell that the check itself, not the 
 search, was broken. Fixed to `len(search_results.get('results', [])) > 0`; 
-confirmed via trace showing correct `is_verified: false → true` transitions 
+confirmed via trace showing correct `is_verified: false : true` transitions 
 tied to actual search result counts.
 
 <img width="1919" height="942" alt="image" src="https://github.com/user-attachments/assets/8d587754-6c15-4b6e-ba70-ddcd48fef875" />
