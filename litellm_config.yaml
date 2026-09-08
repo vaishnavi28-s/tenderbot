@@ -1,0 +1,50 @@
+model_list:
+- model_name: tender-scout-model
+  litellm_params:
+    model: gemini/gemini-3.6-flash
+    api_key: os.environ/GOOGLE_API_KEY
+- model_name: tender-scout-model
+  litellm_params:
+    model: groq/openai/gpt-oss-120b
+    api_key: os.environ/GROQ_API_KEY
+- model_name: tender-scout-model
+  litellm_params:
+    model: openrouter/meta-llama/llama-3.1-8b-instruct
+    api_key: os.environ/OPENROUTER_API_KEY
+- model_name: tender-crew-model
+  litellm_params:
+    model: groq/openai/gpt-oss-120b
+    api_key: os.environ/GROQ_API_KEY
+- model_name: tender-crew-model
+  litellm_params:
+    model: openrouter/meta-llama/llama-3.1-70b-instruct
+    api_key: os.environ/OPENROUTER_API_KEY
+- model_name: tender-crew-model
+  litellm_params:
+    model: gemini/gemini-3.6-flash
+    api_key: os.environ/GOOGLE_API_KEY
+- model_name: quality-judge
+  litellm_params:
+    model: groq/openai/gpt-oss-120b
+    api_key: os.environ/GROQ_API_KEY
+- model_name: quality-judge
+  litellm_params:
+    model: gemini/gemini-3.6-flash
+    api_key: os.environ/GOOGLE_API_KEY
+- model_name: quality-judge
+  litellm_params:
+    model: openrouter/meta-llama/llama-3.1-8b-instruct
+    api_key: os.environ/OPENROUTER_API_KEY
+router_settings:
+  routing_strategy: simple-shuffle
+  num_retries: 4
+  cooldown_time: 1
+  fallbacks:
+  - tender-scout-model:
+    - tender-crew-model
+  enable_pre_call_check: true
+  set_verbose: true
+general_settings:
+  master_key: sk-1234
+litellm_settings:
+  request_timeout: 20

@@ -1,0 +1,26 @@
+services:
+  # Qdrant: The Vector Database
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333" # REST API
+      - "6334:6334" # gRPC API
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    restart: always
+
+  # Postgres: The Relational Database
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: tender_admin
+      POSTGRES_PASSWORD: tender_secret
+      POSTGRES_DB: tender_intel
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  qdrant_storage:
+  postgres_data:
