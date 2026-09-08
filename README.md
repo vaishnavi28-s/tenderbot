@@ -39,12 +39,12 @@ TenderBot is a multi-language (Python/TypeScript) AI pipeline that automates the
 
 ## Observability
 
-LangSmith auto-traces every LangGraph execution — each graph run appears as a 
-root trace, with individual nodes recorded as child runs showing state 
-before/after, latency, and errors, forming a hierarchical trace tree.
+LangSmith auto-traces every LangGraph execution and each graph run appears as a 
+root trace with individual nodes recorded as child runs showing state 
+before/after, latency and errors forming a hierarchical trace tree.
 
 This surfaced a concrete production bug. The verification node checked 
-`len(search_results) > 0` to confirm a tender exists — but Tavily's API 
+`len(search_results) > 0` to confirm a tender exists but Tavily's API 
 returns a dict (`{query, results, answer, images, ...}`), not a list. 
 `len()` was counting ~5 dictionary keys, not the actual number of matches 
 in `results`. The node's state showed `is_verified: true` for every input, 
@@ -52,15 +52,16 @@ including tenders with zero real search matches.
 
 Root-caused via trace inspection: comparing the node's `state before/after` 
 across two runs (a real tender vs. a fabricated one) showed identical 
-output despite different inputs — the tell that the check itself, not the 
+output despite different inputs: the tell that the check itself, not the 
 search, was broken. Fixed to `len(search_results.get('results', [])) > 0`; 
 confirmed via trace showing correct `is_verified: false → true` transitions 
 tied to actual search result counts.
-## Step-by-Step Deployment Guide
 
 <img width="1919" height="942" alt="image" src="https://github.com/user-attachments/assets/8d587754-6c15-4b6e-ba70-ddcd48fef875" />
 
 ---
+
+## Step-by-Step Deployment Guide
 
 ### 1. Initial Setup
 ```bash
