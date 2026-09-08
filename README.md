@@ -34,6 +34,7 @@ TenderBot is a multi-language (Python/TypeScript) AI pipeline that automates the
 **7. Observability** - LangSmith traces every LangGraph run (input, output, latency) which is how a production bug in the verification logic was identified and confirmed fixed.
 
 **8. Alerting** - n8n sends an email notification when the fact-check guardrail flags a tender.
+
 ---
 
 ## Step-by-Step Deployment Guide
