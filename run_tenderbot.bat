@@ -17,5 +17,9 @@ cd /d C:\Users\vaish\Downloads\tenderbot\agents_python
 call ..\venv\Scripts\activate
 python fetch_tenders.py
 
-echo Done. Check the other windows for any problems.
+start "Backend" cmd /k "cd /d C:\Users\vaish\Downloads\tenderbot\backend && call ..\venv\Scripts\activate && python main.py"
+
+start "Frontend" cmd /k "cd /d C:\Users\vaish\Downloads\tenderbot\frontend && npm start"
+
+echo Done. Backend and frontend are starting in their own windows.
 pause

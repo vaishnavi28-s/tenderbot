@@ -4,7 +4,7 @@ import TenderDashboard from './TenderDashboard';
 import Sidebar from './Sidebar';
 
 const client = new ApolloClient({
-  uri: 'http://localhost:8000/graphql',
+  uri: 'http://localhost:8001/graphql',
   cache: new InMemoryCache(),
 });
 

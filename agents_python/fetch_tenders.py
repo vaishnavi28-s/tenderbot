@@ -15,7 +15,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 
-from raw_content_store import init_raw_table, save_raw_content
+from raw_content_store import init_raw_table, save_raw_content, save_failed_tender
 
 JOB_POSTING_MARKER = "(m/w/d)"
 
@@ -125,7 +125,11 @@ def extract_from_crawled_markdown(markdown_text: str) -> dict:
 
 
 def extract_all_tab_urls(driver, base_url):
-    driver.get(base_url)
+    try:
+        driver.get(base_url)
+    except Exception as e:
+        print(f"  page load timed out/failed: {base_url} ({e})")
+        return []
     time.sleep(3)
 
     base = urlparse(base_url)
@@ -231,7 +235,7 @@ async def fetch_and_process():
     options.add_argument("--window-size=1920,1080")
     options.add_argument("--no-sandbox")
     driver = webdriver.Chrome(options=options)
-
+    driver.set_page_load_timeout(30)
     async with AsyncWebCrawler() as crawler:
         try:
             for entry in fetched:
@@ -332,6 +336,7 @@ def dispatch_to_mastra(newly_added: list[dict]):
 
         except Exception as e:
             print(f"Failed to dispatch {tender['title']} to Mastra: {e}")
+            save_failed_tender(tender, str(e))
 
 class Tender(BaseModel):
     title: str

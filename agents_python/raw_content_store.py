@@ -68,3 +68,26 @@ def get_raw_content_by_title(title: str) -> str:
         return ""
     finally:
         conn.close()
+
+def save_failed_tender(tender: dict, error: str):
+    conn = psycopg2.connect(PG_CONN_STRING)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS failed_tenders (
+                    id SERIAL PRIMARY KEY,
+                    title TEXT,
+                    link TEXT,
+                    error TEXT,
+                    failed_at TIMESTAMP DEFAULT NOW()
+                )
+            """)
+            cur.execute("""
+                INSERT INTO failed_tenders (title, link, error)
+                VALUES (%s, %s, %s)
+            """, (tender.get("title"), tender.get("link"), error))
+        conn.commit()
+    except Exception as e:
+        print(f"Failed to log failure: {e}")
+    finally:
+        conn.close()
