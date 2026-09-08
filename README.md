@@ -22,7 +22,7 @@ pip install -r requirements.txt
 cd frontend && npm install
 cd ../my_mastra_app && npm install
 ```
-Copy `.env.example` to `.env` and fill in API keys.
+Fill in API keys in .env
 
 ### 2. Infrastructure Initialization
 ```bash
