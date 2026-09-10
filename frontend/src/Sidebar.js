@@ -10,7 +10,7 @@ function Sidebar({ onSearch, answer, tenders, loading }) {
 
   return (
     <div style={{ 
-      width: '28%', padding: '20px', backgroundColor: '#f9fafb', 
+      width: '42%', padding: '20px', backgroundColor: '#f9fafb', 
       borderRight: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column',
       height: '100vh', boxSizing: 'border-box'
     }}>

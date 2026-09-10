@@ -31,7 +31,7 @@ class CustomQualityJudge(DeepEvalBaseLLM):
                 model=f"openai/{self.model_name}", 
                 messages=[{"role": "user", "content": prompt}],
                 base_url=self.base_url,
-                api_key="sk-local-proxy-key" 
+                api_key="sk-1234" 
             )
             return response.choices[0].message.content
         except Exception as e:

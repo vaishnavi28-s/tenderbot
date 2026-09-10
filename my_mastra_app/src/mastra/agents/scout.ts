@@ -1,24 +1,15 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 import { Agent } from '@mastra/core/agent';
 import { scraperTool } from '../tools/scraper';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { z } from 'zod';
 
-export const tenderSchema = z.object({
-  referenceNumber: z.string(),
-  title: z.string(),
-  contractingAuthority: z.string(),
-  sector: z.string(),
-  keywords: z.array(z.string()),
-  valueScore: z.number(),
-  confidenceScore: z.number(),
-  summary: z.string(),
-  submissionDeadline: z.string(),
-  estimatedValue: z.number().nullable(),
-  cpvCode: z.string().nullable(),
-  procedureType: z.string(),
-  eligibilityCriteria: z.array(z.string()),
-});
 
 const gateway = createOpenAICompatible({
   name: 'litellm-gateway',
@@ -100,7 +91,8 @@ export const enrichAgent = new Agent({
        Negotiated, CompetitiveDialogue) - use "Unknown" if not stated.
     8. List key eligibility/certification requirements as short bullet-style
        strings, taken from the text - empty array if none are stated.
-
+    9. Extract the contracting authority (buyer/organization running this tender) from the text if not obviously stated elsewhere.
+    10. If the tender states it is divided into lots, extract the number of lots as numberOfLots; null if single-lot or unstated.
     ## RULES
     - Do not provide a preamble (no "Here is the data").
     - OUTPUT ONLY A SINGLE JSON OBJECT.
@@ -122,10 +114,13 @@ export const enrichAgent = new Agent({
       "valueScore": 0,
       "confidenceScore": 0,
       "summary": "...",
+      "submissionDeadline": "...",
       "estimatedValue": null,
       "cpvCode": null,
       "procedureType": "Unknown",
-      "eligibilityCriteria": []
+      "eligibilityCriteria": [],
+      "contractingAuthority": "...",
+      "numberOfLots": null
     }
   `,
   model: gateway.chatModel('tender-scout-model'),

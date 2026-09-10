@@ -4,25 +4,26 @@ from strawberry.fastapi import GraphQLRouter
 from qdrant_client import QdrantClient
 from google import genai
 from google.genai import types
+from fastembed import SparseTextEmbedding
+from qdrant_client.models import Prefetch, FusionQuery, Fusion, SparseVector
+from sentence_transformers import CrossEncoder
 from typing import List, Optional
 import traceback
 from sqlalchemy import create_engine, text
 import litellm
 import os
 from fastapi.middleware.cors import CORSMiddleware
-
+from prometheus_fastapi_instrumentator import Instrumentator
 
 client_qdrant = QdrantClient(url="http://localhost:6333")
 COLLECTION_NAME = "tenders"
 
 client_gemini_embed = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
-
+sparse_model = SparseTextEmbedding(model_name="Qdrant/bm25")
+reranker = CrossEncoder("BAAI/bge-reranker-v2-m3")
 MODEL_LIST = [
-    {"model": "gemini/gemini-3.6-flash", "api_key": os.getenv("GOOGLE_API_KEY")},
     {"model": "groq/openai/gpt-oss-120b", "api_key": os.getenv("GROQ_API_KEY")},
-    {"model": "openrouter/meta-llama/llama-3.1-8b-instruct", "api_key": os.getenv("OPENROUTER_API_KEY")},
-    {"model": "cerebras/gpt-oss-120b", "api_key": os.getenv("CEREBRAS_API_KEY")},
-    {"model": "sambanova/Meta-Llama-3.1-8B-Instruct", "api_key": os.getenv("SAMBANOVA_API_KEY")}
+    {"model": "groq/openai/gpt-oss-20b", "api_key": os.getenv("GROQ_API_KEY")},
 ]
 
 engine = create_engine("postgresql://tender_admin:tender_secret@localhost:5433/tender_intel")
@@ -103,48 +104,73 @@ def get_llm_completion(prompt: str, system_instruction: str = "You are a helpful
             continue
     raise Exception("All LLM providers exhausted or rate-limited.")
 
-def get_qdrant_matches(query_text: str, limit: int = 5) -> List[Tender]:
+def get_qdrant_matches(query_text: str, limit: int = 5, fetch_k: int = 20) -> List[Tender]:
+    # Dense query vector (existing Gemini call)
     embedding_result = client_gemini_embed.models.embed_content(
         model="gemini-embedding-001",
         contents=query_text,
         config=types.EmbedContentConfig(task_type="RETRIEVAL_QUERY")
     )
-    query_vector = embedding_result.embeddings[0].values
+    dense_query_vector = embedding_result.embeddings[0].values
+
+    # Sparse query vector (local, free)
+    sparse_query = next(sparse_model.embed([query_text]))
+
+    # Hybrid retrieval with native RRF fusion — fetch more than needed, rerank down
     search_results = client_qdrant.query_points(
-        collection_name=COLLECTION_NAME, query=query_vector, limit=limit, with_payload=True
+        collection_name=COLLECTION_NAME,
+        prefetch=[
+            Prefetch(query=dense_query_vector, using="dense", limit=fetch_k),
+            Prefetch(
+                query=SparseVector(
+                    indices=sparse_query.indices.tolist(),
+                    values=sparse_query.values.tolist(),
+                ),
+                using="sparse",
+                limit=fetch_k,
+            ),
+        ],
+        query=FusionQuery(fusion=Fusion.RRF),
+        limit=fetch_k,
+        with_payload=True,
     ).points
 
-    tenders = []
-    for hit in search_results:
-        pay = hit.payload
+    if not search_results:
+        return []
 
+    # Rerank the fused candidates
+    candidates = [hit.payload.get("summary", "") or hit.payload.get("title", "") for hit in search_results]
+    pairs = [[query_text, c] for c in candidates]
+    scores = reranker.predict(pairs)
+
+    reranked = sorted(zip(search_results, scores), key=lambda x: x[1], reverse=True)[:limit]
+
+    tenders = []
+    for hit, score in reranked:
+        pay = hit.payload
         tenders.append(Tender(
-            title=pay.get("title") or pay.get("Title") or "Unknown Tender",
-            contractingAuthority=pay.get("contractingAuthority") or pay.get("ContractingAuthority") or "",
-            sector=pay.get("sector") or pay.get("Sector") or "",
-            summary=pay.get("summary") or pay.get("Summary") or "",
+            title=pay.get("title") or "Unknown Tender",
+            contractingAuthority=pay.get("contractingAuthority") or "",
+            sector=pay.get("sector") or "",
+            summary=pay.get("summary") or "",
             lat=float(pay.get("lat", 0.0)),
             lng=float(pay.get("lng", 0.0)),
             keywords=pay.get("keywords", []),
             qualityStatus=pay.get("quality_status", "unverified"),
-            url=pay.get("URL") or pay.get("url"),
-            referenceNumber=pay.get("referenceNumber") or pay.get("ReferenceNumber"),
-            submissionDeadline=pay.get("submissionDeadline") or pay.get("SubmissionDeadline"),
+            url=pay.get("sourceUrl") or pay.get("URL") or pay.get("url"),
+            referenceNumber=pay.get("referenceNumber"),
+            submissionDeadline=pay.get("submissionDeadline"),
             estimatedValue=pay.get("estimatedValue"),
             cpvCode=pay.get("cpvCode"),
             procedureType=pay.get("procedureType"),
             eligibilityCriteria=pay.get("eligibilityCriteria", []),
             fitTier=pay.get("fitTier"),
             fitReasons=[
-                FitReason(
-                    criterion=r.get("criterion", ""),
-                    status=r.get("status", "unclear"),
-                    reason=r.get("reason", "")
-                )
+                FitReason(criterion=r.get("criterion", ""), status=r.get("status", "unclear"), reason=r.get("reason", ""))
                 for r in pay.get("fitReasons", [])
             ],
             factsVerified=pay.get("factsVerified", True),
-            factCheckNotes=pay.get("factCheckNotes", [])
+            factCheckNotes=pay.get("flaggedFields", [])
         ))
     return tenders
 
@@ -203,7 +229,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(graphql_app, prefix="/graphql")
-
+Instrumentator().instrument(app).expose(app)
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)

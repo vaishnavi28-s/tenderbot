@@ -3,7 +3,6 @@ from langgraph.graph import StateGraph, END
 from tavily import TavilyClient
 import os
 
-#Defining the State 
 class AgentState(TypedDict):
     tender_data: dict
     verifications: List[str]
@@ -12,25 +11,38 @@ class AgentState(TypedDict):
 
 tavily = TavilyClient(api_key=os.environ.get("TAVILY_API_KEY"))
 
-#Node: Verification Logic
+def build_query(tender: dict) -> str:
+    parts = ["Ausschreibung", tender.get("title", "")]
+    if tender.get("contractingAuthority"):
+        parts.append(tender["contractingAuthority"])
+    if tender.get("referenceNumber"):
+        parts.append(f"Vergabenummer {tender['referenceNumber']}")
+    parts.append("service.bund.de")
+    return " ".join(p for p in parts if p)
+
 def verify_tender_node(state: AgentState):
     tender = state['tender_data']
-    query = f"Ausschreibung {tender['title']} {tender['contractingAuthority']} Vergabenummer {tender.get('referenceNumber', '')} service.bund.de"
-    
-    # Automatic search
-    search_results = tavily.search(query=query, search_depth="basic")
-    
-    # If search finds matches, mark as verified
-    state['is_verified'] = len(search_results.get('results', [])) > 0
+    query = build_query(tender)
+
+    try:
+        search_results = tavily.search(query=query, search_depth="basic")
+        found = len(search_results.get('results', [])) > 0
+    except Exception as e:
+        print(f"Tavily search failed (non-fatal): {e}")
+        found = False
+
+    # Never hard-reject on a single search miss — flag instead, matching
+    # the rest of the pipeline's flag-don't-discard design
+    state['is_verified'] = True
+    state['verifications'].append(
+        "confirmed_via_search" if found else "unconfirmed_via_search"
+    )
     state['iterations'] += 1
     return state
 
-#Create the Graph
 workflow = StateGraph(AgentState)
 workflow.add_node("verifier", verify_tender_node)
 workflow.set_entry_point("verifier")
-
-#Conditional Edge: If not verified, we could route back to Mastra
 workflow.add_edge("verifier", END)
 
 app_graph = workflow.compile()

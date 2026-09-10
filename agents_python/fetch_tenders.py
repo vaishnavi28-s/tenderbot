@@ -7,6 +7,7 @@ import requests
 import feedparser
 import pdfplumber
 import io
+import html
 from crawl4ai import AsyncWebCrawler
 from bs4 import BeautifulSoup
 from pydantic import BaseModel
@@ -43,7 +44,7 @@ def fetch_rss_entries(search_terms: list[str] = SEARCH_TERMS):
         feed = feedparser.parse(r.text)
         for e in feed.entries:
             if e.link not in seen_links:
-                all_entries.append({"title": e.title, "link": e.link, "category": term})
+                all_entries.append({"title": html.unescape(e.title), "link": e.link, "category": term})
                 seen_links.add(e.link)
     return all_entries
 
@@ -327,7 +328,7 @@ def dispatch_to_mastra(newly_added: list[dict]):
         payload = {**tender, "markdown": markdown_text}
 
         try:
-            resp = requests.post(MASTRA_ENRICH_URL, json=payload, timeout=120)
+            resp = requests.post(MASTRA_ENRICH_URL, json=payload, timeout=500)
             resp.raise_for_status()
             print(f"Dispatched to Mastra: {tender['title']} -> {resp.json().get('status')}")
 
