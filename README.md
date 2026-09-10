@@ -2,58 +2,64 @@
 
 **A Multi-Agent Orchestration System for German Public Tender Intelligence**
 
+![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
+![React](https://img.shields.io/badge/React-61DAFB?style=flat&logo=react&logoColor=black)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat&logo=fastapi&logoColor=white)
+![GraphQL](https://img.shields.io/badge/GraphQL-E10098?style=flat&logo=graphql&logoColor=white)
+![LangChain](https://img.shields.io/badge/LangGraph-1C3C3C?style=flat&logo=langchain&logoColor=white)
+![Qdrant](https://img.shields.io/badge/Qdrant-DC244C?style=flat&logo=qdrant&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat&logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)
+![n8n](https://img.shields.io/badge/n8n-EA4B71?style=flat&logo=n8n&logoColor=white)
+![LangSmith](https://img.shields.io/badge/LangSmith-1C3C3C?style=flat)
+![DeepEval](https://img.shields.io/badge/DeepEval-8A2BE2?style=flat)
+
+
+<img width="1169" height="825" alt="Gemini_Generated_Image_xqb02ixqb02ixqb0" src="https://github.com/user-attachments/assets/9ad5d1de-78dc-4edc-be34-a3e48784a64b" />
+
+
+
 TenderBot is a multi-language (Python/TypeScript) AI pipeline that automates the discovery, verification, and enrichment of German public procurement tenders (service.bund.de). It's a public-data rebuild of a LangGraph tender-intelligence agent originally built for Bertelsmann, reconstructed on public data to work around the original's confidentiality constraints. It uses a **Hybrid RAG** approach combining **Semantic Vector Search** with **Text2SQL**.
 
 ---
+## How it works
 
-## How it Works
+**1. Discovery** - `fetch_tenders.py` searches service.bund.de's RSS feed across 3 procurement categories, crawls each tender's announcement page via Selenium and extracts raw content.
 
-### The "Intelligence" Loop
+**2. Enrichment** - Raw text is passed to a TypeScript service (Mastra), where an LLM agent classifies sector, extracts keywords and generates a summary.
 
-We achieve high-fidelity procurement data through a five-stage **"Data Refinery"** process:
+**3. Verification (4 independent checks)**
+- **LangGraph** - live web search confirms the tender genuinely exists
+- **CrewAI** - a two-agent crew: one cross-checks facts, one writes the final structured record
+- **DeepEval** - an independent LLM-as-a-Judge scores summary faithfulness
+- **LangGraph (deterministic)** - a second, non-AI graph compares every claimed fact against the raw source text directly
 
-1. **Discovery (The Signal):** `fetch_tenders.py` monitors service.bund.de via RSS across three categories (digitalisierung, scandienstleistungen, wahlunterlagen), crawling announcement pages with Selenium + crawl4ai.
-2. **Enrichment (The Scout):** **TypeScript (Mastra)** agents extract sector, keywords, and summary from collected content — deterministic fields (title, deadline, authority) are never re-derived by the LLM.
-3. **Validation (The Gatekeeper):** A **Python (LangGraph/CrewAI)** layer performs an automated "Double-Check," using Tavily web search to verify the tender genuinely exists.
-4. **Auditing (Three Layers):** Data passes through **DeepEval** (LLM-as-a-Judge faithfulness scoring), a second **LangGraph** fact-check guardrail that compares AI-claimed facts against the raw crawled source text, and a **fit-check** that evaluates eligibility against a company profile.
-5. **Alerting (The Human Touch):** When the fact-check guardrail flags a tender, **n8n** sends an email alert for manual review.
+**4. Fit scoring** - An LLM agent compares eligibility criteria against a company profile, returning a tiered rating (Great/Good/Partial/Low fit/Unclear).
 
-### Smart Discovery
+**5. Storage**
+- **Qdrant** - vector store enabling semantic search (e.g. "IT tenders under €500k" matches by meaning, not exact keywords)
+- **PostgreSQL** - archives raw source text and logs failed processing attempts
 
-#### Semantic Search
-Users search naturally (e.g., *"IT tenders under €500k"*) via our **Qdrant** vector store matching intent to tender characteristics.
+**6. Interface**
+- **Backend** (FastAPI + Strawberry GraphQL) - resolves queries against Qdrant, Postgres and the LLM
+- **Frontend** (React) - search interface, tender table, fit-tier badges
 
-#### Analytical Intelligence (Text2SQL)
-Via **Text2SQL**, users ask analytical questions (e.g., *"how many tenders are open this month"*). The system generates and executes SQL against our **PostgreSQL** archive.
+**7. Observability** - LangSmith traces every LangGraph run (input, output, latency) which is how a production bug in the verification logic was identified and confirmed fixed.
 
-#### Fit Scoring
-A LinkedIn-style eligibility check compares each tender's requirements against a company profile — category-aware, so an IT tender is judged on IT/cloud-relevant fields, not scanning- or election-specific ones.
+**8. Alerting** - n8n sends an email notification when the fact-check guardrail flags a tender.
 
 ---
 
-## The Technical Architecture
+## Observability
 
-* **Multi-Agent Orchestration:**
-  * **LangGraph:** Two separate graphs — existence verification, and the fact-check guardrail (with real conditional branching).
-  * **CrewAI:** A sequential two-agent crew — fact-checker, then procurement analyst.
-  * **Mastra:** TypeScript agent layer for enrichment.
+LangSmith auto-traces every LangGraph execution and each graph run appears as a 
+root trace with individual nodes recorded as child runs showing state 
+before/after, latency and errors forming a hierarchical trace tree.
 
-* **LLM Infrastructure:**
-  * **LiteLLM:** Unified gateway with fallbacks across **Gemini, Groq, OpenRouter** (Cerebras/SambaNova removed after both required payment on this account).
-  * **LangSmith:** Tracing for both LangGraph workflows.
+It's traces helped me catch and fix a bug where the tender-verification step was always passing, regardless of whether a tender actually existed
 
-* **Data Strategy & Storage:**
-  * **Qdrant:** Vector DB for semantic search.
-  * **PostgreSQL:** Raw crawled source text archive + historical tender archive for Text2SQL.
-  * **n8n:** Fact-check-flagged-tender email alerting.
-
-* **Reliability & Evaluation:**
-  * **DeepEval:** LLM-as-a-Judge faithfulness auditing.
-  * **Fact-Check Guardrail:** Deterministic (non-AI) comparison of claimed facts against source text — catches hallucinated details like fabricated reference numbers.
-
-* **Interface Layer:**
-  * **GraphQL (Strawberry)** + **REST (FastAPI)** + **Uvicorn**.
-  * **React dashboard:** deadline urgency, fit tier, and estimated value — replacing an earlier map-based UI, since geography isn't decision-relevant for tenders the way it is for events.
+<img width="1919" height="942" alt="image" src="https://github.com/user-attachments/assets/8d587754-6c15-4b6e-ba70-ddcd48fef875" />
 
 ---
 
@@ -69,7 +75,7 @@ pip install -r requirements.txt
 cd frontend && npm install
 cd ../my_mastra_app && npm install
 ```
-Copy `.env.example` to `.env` and fill in API keys.
+Fill in API keys in .env
 
 ### 2. Infrastructure Initialization
 ```bash
