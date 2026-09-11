@@ -28,7 +28,7 @@ TenderBot is a multi-language (Python/TypeScript) AI pipeline that automates the
 
 We achieve high-fidelity tender reporting through a three-stage **"Verification Refinery"** process:
 
-1. **Extraction (The Signal):** A specialized **TypeScript (Mastra)** agent performs single-pass, schema-validated structured extraction — reading each raw tender exactly once and producing a bounded, consistent JSON dossier.
+1. **Extraction (The Signal):** A specialized **TypeScript (Mastra)** agent performs single-pass, schema-validated structured extraction reading each raw tender exactly once and producing a bounded, consistent JSON dossier.
 2. **Validation (The Gatekeeper):** Extracted tenders are handed off to a **Python (LangGraph/CrewAI)** layer. LangGraph confirms tender existence via live web search; a CrewAI agent then fact-checks specific claims (contracting authority, reference number), producing closed-set `confirmed` / `contradicted` / `unconfirmed` verdicts never freely rewriting data.
 3. **Auditing (The Judge):** Extractions are additionally scored through a **DeepEval (LLM-as-a-Judge)** faithfulness metric, auditing content against the raw source text for hallucination. Any contradiction is surfaced directly to the end user with the original source link — never silently auto-corrected.
 
