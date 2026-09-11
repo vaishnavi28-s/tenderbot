@@ -11,7 +11,6 @@
 ![Qdrant](https://img.shields.io/badge/Qdrant-DC244C?style=flat&logo=qdrant&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat&logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)
-![n8n](https://img.shields.io/badge/n8n-EA4B71?style=flat&logo=n8n&logoColor=white)
 ![LangSmith](https://img.shields.io/badge/LangSmith-1C3C3C?style=flat)
 ![DeepEval](https://img.shields.io/badge/DeepEval-8A2BE2?style=flat)
 
@@ -20,7 +19,7 @@
 
 
 
-TenderBot is a multi-language (Python/TypeScript) AI pipeline that automates the discovery, verification, and enrichment of German public procurement tenders (service.bund.de). It's a public-data rebuild of a LangGraph tender-intelligence agent originally built for Bertelsmann, reconstructed on public data to work around the original's confidentiality constraints. It uses a **Hybrid RAG** approach combining **Semantic Vector Search** with **Text2SQL**.
+TenderBot is a multi-language (Python/TypeScript) AI pipeline that automates the discovery, verification, and enrichment of German public procurement tenders (service.bund.de). It's a public-data rebuild of a LangGraph tender-intelligence agent originally built for Bertelsmann, reconstructed on public data to work around the original's confidentiality constraints. It uses a **Hybrid RAG** approach combining **Semantic Vector Search**.
 
 ---
 ## How it Works
@@ -72,6 +71,7 @@ This project demonstrates proficiency across the following modern AI engineering
 - **Uvicorn:** ASGI server for both FastAPI/Strawberry services.
 - **React:** Dashboard surfacing tender results, verification status, and source links directly to end users.
 
+### The Agent Loop in Action
 [Watch the agent loop run](./images/main.py.mp4)
 ---
 
@@ -79,7 +79,7 @@ This project demonstrates proficiency across the following modern AI engineering
 
 To ensure effective monitoring and debugging across a heterogeneous, multi-framework pipeline, the project integrates **LangSmith** for unified distributed tracing. Despite the pipeline spanning two languages and three separate agent frameworks **LangGraph** (existence verification), **CrewAI** (fact-checking) and **Mastra** (extraction, TypeScript) every agent call, tool invocation, and LLM inference is traced into a single LangSmith project, giving full visibility into where time and tokens are spent at each stage of the pipeline.
 
-![LangSmith trace](./images/Langsmith.png)
+![LangSmith trace](./images/LangSmith.png)
 
 API-level metrics are additionally tracked via **Prometheus**, scraped from both backend services on a 15s interval, and visualized live in **Grafana**.
 
