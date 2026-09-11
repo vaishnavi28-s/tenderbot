@@ -72,6 +72,7 @@ This project demonstrates proficiency across the following modern AI engineering
 - **Uvicorn:** ASGI server for both FastAPI/Strawberry services.
 - **React:** Dashboard surfacing tender results, verification status, and source links directly to end users.
 
+[Watch the agent loop run](./images/main.py.mp4)
 ---
 
 ## Observability
