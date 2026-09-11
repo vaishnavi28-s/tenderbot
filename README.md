@@ -100,8 +100,9 @@ pip install -r requirements.txt
 cd frontend && npm install
 cd ../my_mastra_app && npm install
 ```
-
 Create a `.env` file declaring the API keys:
+
+```
 GROQ_API_KEY=xxx
 GOOGLE_API_KEY=xxx
 TAVILY_API_KEY=xxx
@@ -110,7 +111,7 @@ LANGSMITH_PROJECT=tenderbot
 LANGCHAIN_API_KEY=xxx
 LANGCHAIN_PROJECT=tenderbot
 LANGCHAIN_TRACING_V2=true
----
+```
 
 
 ### 2. Infrastructure Initialization
