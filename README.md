@@ -79,7 +79,7 @@ This project demonstrates proficiency across the following modern AI engineering
 
 To ensure effective monitoring and debugging across a heterogeneous, multi-framework pipeline, the project integrates **LangSmith** for unified distributed tracing. Despite the pipeline spanning two languages and three separate agent frameworks **LangGraph** (existence verification), **CrewAI** (fact-checking) and **Mastra** (extraction, TypeScript) every agent call, tool invocation, and LLM inference is traced into a single LangSmith project, giving full visibility into where time and tokens are spent at each stage of the pipeline.
 
-![LangSmith trace](./images/langsmith.png)
+![LangSmith trace](./images/Langsmith.png)
 
 API-level metrics are additionally tracked via **Prometheus**, scraped from both backend services on a 15s interval, and visualized live in **Grafana**.
 
