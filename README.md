@@ -43,7 +43,7 @@ Search combines **dense vector retrieval** (Gemini embeddings) with **sparse BM2
 #### Agentic Q&A
 Users can also ask natural-language questions about the tender landscape (e.g., *"Which tenders involve digitizing archives?"*), answered by a concise, context-grounded LLM response drawn from the retrieved matches.
 
-![Frontend — hybrid search results](./images/frontend.png)
+![Frontend hybrid search results](./images/frontend.png)
 
 
 ---
