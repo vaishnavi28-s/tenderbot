@@ -132,7 +132,7 @@ litellm --config litellm_config.yaml --port 4000 --drop_params
 
 ### 4. Agentic Validation Engine
 
-Launch the Python backend — hosts the **LangGraph** existence-check, the **CrewAI** verification agent, and **DeepEval** faithfulness scoring:
+Launch the Python backend hosts the **LangGraph** existence-check, the **CrewAI** verification agent, and **DeepEval** faithfulness scoring:
 
 ```bash
 cd agents_python && python main.py
