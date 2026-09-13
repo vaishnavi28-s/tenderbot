@@ -11,7 +11,6 @@
 ![Qdrant](https://img.shields.io/badge/Qdrant-DC244C?style=flat&logo=qdrant&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat&logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)
-![n8n](https://img.shields.io/badge/n8n-EA4B71?style=flat&logo=n8n&logoColor=white)
 ![LangSmith](https://img.shields.io/badge/LangSmith-1C3C3C?style=flat)
 ![DeepEval](https://img.shields.io/badge/DeepEval-8A2BE2?style=flat)
 
@@ -20,7 +19,7 @@
 
 
 
-TenderBot is a multi-language (Python/TypeScript) AI pipeline that automates the discovery, verification, and enrichment of German public procurement tenders (service.bund.de). It's a public-data rebuild of a LangGraph tender-intelligence agent originally built for Bertelsmann, reconstructed on public data to work around the original's confidentiality constraints. It uses a **Hybrid RAG** approach combining **Semantic Vector Search** with **Text2SQL**.
+TenderBot is a multi-language (Python/TypeScript) AI pipeline that automates the discovery, verification, and enrichment of German public procurement tenders (service.bund.de). It's a public-data rebuild of a LangGraph tender-intelligence agent originally built for Bertelsmann, reconstructed on public data to work around the original's confidentiality constraints. It uses a **Hybrid RAG** approach combining **Semantic Vector Search**.
 
 ---
 ## How it Works
@@ -29,9 +28,9 @@ TenderBot is a multi-language (Python/TypeScript) AI pipeline that automates the
 
 We achieve high-fidelity tender reporting through a three-stage **"Verification Refinery"** process:
 
-1. **Extraction (The Signal):** A specialized **TypeScript (Mastra)** agent performs single-pass, schema-validated structured extraction — reading each raw tender exactly once and producing a bounded, consistent JSON dossier.
+1. **Extraction (The Signal):** A specialized **TypeScript (Mastra)** agent performs single-pass, schema-validated structured extraction reading each raw tender exactly once and producing a bounded, consistent JSON dossier.
 2. **Validation (The Gatekeeper):** Extracted tenders are handed off to a **Python (LangGraph/CrewAI)** layer. LangGraph confirms tender existence via live web search; a CrewAI agent then fact-checks specific claims (contracting authority, reference number), producing closed-set `confirmed` / `contradicted` / `unconfirmed` verdicts never freely rewriting data.
-3. **Auditing (The Judge):** Extractions are additionally scored through a **DeepEval (LLM-as-a-Judge)** faithfulness metric, auditing content against the raw source text for hallucination. Any contradiction is surfaced directly to the end user with the original source link — never silently auto-corrected.
+3. **Auditing (The Judge):** Extractions are additionally scored through a **DeepEval (LLM-as-a-Judge)** faithfulness metric, auditing content against the raw source text for hallucination. Any contradiction is surfaced directly to the end user with the original source link never silently auto-corrected.
 
 ### Smart Discovery
 
@@ -44,7 +43,7 @@ Search combines **dense vector retrieval** (Gemini embeddings) with **sparse BM2
 #### Agentic Q&A
 Users can also ask natural-language questions about the tender landscape (e.g., *"Which tenders involve digitizing archives?"*), answered by a concise, context-grounded LLM response drawn from the retrieved matches.
 
-![Frontend — hybrid search results](./images/frontend.png)
+![Frontend hybrid search results](./images/frontend.png)
 
 
 ---
@@ -72,13 +71,15 @@ This project demonstrates proficiency across the following modern AI engineering
 - **Uvicorn:** ASGI server for both FastAPI/Strawberry services.
 - **React:** Dashboard surfacing tender results, verification status, and source links directly to end users.
 
+### The Agent Loop in Action
+[Watch the agent loop run](./images/main.py.mp4)
 ---
 
 ## Observability
 
 To ensure effective monitoring and debugging across a heterogeneous, multi-framework pipeline, the project integrates **LangSmith** for unified distributed tracing. Despite the pipeline spanning two languages and three separate agent frameworks **LangGraph** (existence verification), **CrewAI** (fact-checking) and **Mastra** (extraction, TypeScript) every agent call, tool invocation, and LLM inference is traced into a single LangSmith project, giving full visibility into where time and tokens are spent at each stage of the pipeline.
 
-![LangSmith trace](./images/langsmith.png)
+![LangSmith trace](./images/LangSmith.png)
 
 API-level metrics are additionally tracked via **Prometheus**, scraped from both backend services on a 15s interval, and visualized live in **Grafana**.
 
@@ -99,8 +100,9 @@ pip install -r requirements.txt
 cd frontend && npm install
 cd ../my_mastra_app && npm install
 ```
-
 Create a `.env` file declaring the API keys:
+
+```
 GROQ_API_KEY=xxx
 GOOGLE_API_KEY=xxx
 TAVILY_API_KEY=xxx
@@ -109,7 +111,7 @@ LANGSMITH_PROJECT=tenderbot
 LANGCHAIN_API_KEY=xxx
 LANGCHAIN_PROJECT=tenderbot
 LANGCHAIN_TRACING_V2=true
----
+```
 
 
 ### 2. Infrastructure Initialization
@@ -130,7 +132,7 @@ litellm --config litellm_config.yaml --port 4000 --drop_params
 
 ### 4. Agentic Validation Engine
 
-Launch the Python backend — hosts the **LangGraph** existence-check, the **CrewAI** verification agent, and **DeepEval** faithfulness scoring:
+Launch the Python backend hosts the **LangGraph** existence-check, the **CrewAI** verification agent, and **DeepEval** faithfulness scoring:
 
 ```bash
 cd agents_python && python main.py
