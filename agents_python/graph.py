@@ -1,5 +1,7 @@
 from typing import TypedDict, List
 from langgraph.graph import StateGraph, END
+from langgraph.checkpoint.postgres import PostgresSaver
+from psycopg_pool import ConnectionPool
 from tavily import TavilyClient
 import os
 
@@ -31,8 +33,6 @@ def verify_tender_node(state: AgentState):
         print(f"Tavily search failed (non-fatal): {e}")
         found = False
 
-    # Never hard-reject on a single search miss — flag instead, matching
-    # the rest of the pipeline's flag-don't-discard design
     state['is_verified'] = True
     state['verifications'].append(
         "confirmed_via_search" if found else "unconfirmed_via_search"
@@ -40,9 +40,16 @@ def verify_tender_node(state: AgentState):
     state['iterations'] += 1
     return state
 
+# Checkpointer: persists graph state after each node so a crash mid-batch
+
+DB_URI = os.environ.get("POSTGRES_URI", "postgresql://tender_admin:tender_secret@localhost:5433/tender_intel")
+_pool = ConnectionPool(conninfo=DB_URI, max_size=5, open=True)
+checkpointer = PostgresSaver(_pool)
+checkpointer.setup()  # no-op after the first run; safe to call every startup
+
 workflow = StateGraph(AgentState)
 workflow.add_node("verifier", verify_tender_node)
 workflow.set_entry_point("verifier")
 workflow.add_edge("verifier", END)
 
-app_graph = workflow.compile()
+app_graph = workflow.compile(checkpointer=checkpointer)

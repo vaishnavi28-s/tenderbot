@@ -39,3 +39,5 @@ opentelemetry-semantic-conventions-ai==0.5.1
 prometheus-fastapi-instrumentator==8.1.0
 prometheus_client==0.26.0
 sentence-transformers==6.0.1
+psycopg[binary,pool]
+langgraph-checkpoint-postgres

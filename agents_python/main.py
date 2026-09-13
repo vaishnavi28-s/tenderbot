@@ -80,7 +80,8 @@ async def validate_and_store(raw_data: dict):
             "iterations": 0
         }
 
-        graph_result = app_graph.invoke(initial_state)
+        graph_config = {"configurable": {"thread_id": raw_data.get("sourceUrl") or raw_data.get("title")}}
+        graph_result = app_graph.invoke(initial_state, config=graph_config)
 
         if not graph_result.get("is_verified"):
             print(f"Graph rejected tender: {raw_data.get('title')} (Not found on web)")
