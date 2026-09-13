@@ -87,8 +87,6 @@ API-level metrics are additionally tracked via **Prometheus**, scraped from both
 
 ### Reliability: Checkpointed Graph State
 
-[#reliability-checkpointed-graph-state]
-
 The LangGraph existence-verification step is checkpointed to **PostgreSQL** via `langgraph-checkpoint-postgres`, keyed by each tender's source URL. If the FastAPI process crashes or restarts mid-run, a retried request for the same tender resumes from its last checkpoint instead of silently re-running verification and burning a duplicate Tavily search call.
 
 ---
